@@ -391,10 +391,3 @@ app.listen(PORT, () => {
     console.log(`Servidor escuchando en puerto ${PORT}`);
 });
 
-const cors = require("cors");
-
-app.use(cors({
-  origin: "*",           // permite cualquier origen
-  credentials: true      // permite el uso de cookies (aunque con "*" esto no es efectivo)
-}));
-
