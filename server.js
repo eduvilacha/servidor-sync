@@ -4,6 +4,7 @@ import mongoose from 'mongoose'; // Importar mongoose para MongoDB
 import dotenv from 'dotenv'; // Para añadir el .env
 import path from 'path'; // Para trabajar con rutas de archivos
 import { fileURLToPath } from 'url'; // Para obtener el nombre del archivo actual
+import cors from 'cors';
 
 
 //IMPORTAR LOS MODELS JS
@@ -11,7 +12,6 @@ import Pregunta from './models/Preguntas.js';
 import User from './models/User.js';
 import Test from './models/Test.js';
 import Like from './models/Like.js';
-const cors = require("cors");
 
 
 dotenv.config(); // Cargar las variables de entorno del archivo .env
@@ -37,6 +37,13 @@ app.use(session({
     resave: true,
     saveUninitialized: false
 }));
+
+// Configuración de CORS (debe ir antes de las rutas)
+app.use(cors({
+  origin: "*",           // Permite cualquier origen
+  credentials: true      // Permite el uso de cookies
+}));
+
 
 app.use(express.static(path.join(__dirname, '../public')));
 
