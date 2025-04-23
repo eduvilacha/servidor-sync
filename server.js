@@ -8,6 +8,7 @@ import { fileURLToPath } from 'url'; // Para obtener el nombre del archivo actua
 import cors from 'cors';
 
 
+
 //IMPORTAR LOS MODELS JS
 import Pregunta from './models/Preguntas.js';
 import User from './models/User.js';
@@ -43,7 +44,7 @@ app.use(session({
 // Configuración de CORS (debe ir antes de las rutas)
 app.use(cors({
   origin: "*",           // Permite cualquier origen
-  credentials: true      // Permite el uso de cookies
+  credentials: false      // Permite el uso de cookies
 }));
 
 
