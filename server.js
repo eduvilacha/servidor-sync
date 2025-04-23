@@ -11,6 +11,7 @@ import Pregunta from './models/Preguntas.js';
 import User from './models/User.js';
 import Test from './models/Test.js';
 import Like from './models/Like.js';
+const cors = require("cors");
 
 
 dotenv.config(); // Cargar las variables de entorno del archivo .env
@@ -382,3 +383,8 @@ const PORT = process.env.PORT || 4000;
 app.listen(PORT, () => {
     console.log(`Servidor escuchando en puerto ${PORT}`);
 });
+
+app.use(cors({
+  origin: "http://localhost:5173", // el frontend local
+  credentials: true // permite el uso de cookies/sesión
+}));
