@@ -132,10 +132,10 @@ app.post("/login", async (req, res) => {
       nombre: user.nombre
     };
 
-    res.redirect("/");
+    res.status(200).json({ success: true });
   } catch (err) {
     console.log(err);
-    res.redirect("/login");
+    res.status(500).json({ success: false, message: "Error en el servidor" });
   }
 });
 
@@ -379,6 +379,20 @@ app.post("/like", async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).send("Error al registrar like");
+  }
+});
+
+
+
+// Ruta para verificar si el usuario está autenticado
+app.get("/check-auth", (req, res) => {
+  if (req.session.usuario) {
+    res.json({
+      isAuthenticated: true,
+      userName: req.session.usuario.nombre,
+    });
+  } else {
+    res.json({ isAuthenticated: false });
   }
 });
 
