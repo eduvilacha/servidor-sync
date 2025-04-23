@@ -1,6 +1,7 @@
 import express from 'express'; // Importar Express
 import session from 'express-session'; // Importar session
 import mongoose from 'mongoose'; // Importar mongoose para MongoDB
+import MongoStore from 'connect-mongo';
 import dotenv from 'dotenv'; // Para añadir el .env
 import path from 'path'; // Para trabajar con rutas de archivos
 import { fileURLToPath } from 'url'; // Para obtener el nombre del archivo actual
@@ -33,9 +34,10 @@ app.use(express.json());
 
 // Configuración de la sesión
 app.use(session({
-    secret: "123abc", 
-    resave: true,
-    saveUninitialized: false
+  secret: '123abc',
+  resave: true,
+  saveUninitialized: false,
+  store: MongoStore.create({ mongoUrl: process.env.MONGO_URI })
 }));
 
 // Configuración de CORS (debe ir antes de las rutas)
