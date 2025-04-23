@@ -384,7 +384,10 @@ app.listen(PORT, () => {
     console.log(`Servidor escuchando en puerto ${PORT}`);
 });
 
+const cors = require("cors");
+
 app.use(cors({
-  origin: "http://localhost:5173", // el frontend local
-  credentials: true // permite el uso de cookies/sesión
+  origin: "*",           // permite cualquier origen
+  credentials: true      // permite el uso de cookies (aunque con "*" esto no es efectivo)
 }));
+
