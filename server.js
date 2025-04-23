@@ -43,8 +43,8 @@ app.use(session({
 
 // Configuración de CORS (debe ir antes de las rutas)
 app.use(cors({
-  origin: "*",           // Permite cualquier origen
-  credentials: false      // Permite el uso de cookies
+  origin: "http://localhost:5173",           // Permite cualquier origen
+  credentials: true      // Permite el uso de cookies
 }));
 
 
