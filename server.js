@@ -124,7 +124,7 @@ app.post("/login", async (req, res) => {
     const user = await User.findOne({ nombre });
 
     if (!user || user.contrasena !== contrasena) {
-      return res.redirect("/login");
+      return res.status(401).json({ success: false, message: "Usuario o contraseña incorrectos" });
     }
 
     req.session.usuario = {
