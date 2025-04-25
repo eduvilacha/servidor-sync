@@ -17,6 +17,7 @@ import Like from './models/Like.js';
 
 
 dotenv.config(); // Cargar las variables de entorno del archivo .env
+console.log("NODE_ENV:", process.env.NODE_ENV);
 
 // Configurar las rutas de los archivos
 const __filename = fileURLToPath(import.meta.url);
