@@ -37,11 +37,11 @@ app.use(express.json());
 // Configuración de la sesión
 app.use(session({
   secret: '123abc',
-  resave: true,
+  resave: false,
   saveUninitialized: false,
-  store: MongoStore.create({ 
+  store: MongoStore.create({
     mongoUrl: process.env.MONGO_URI,
-    clientPromise: mongoose.connection.asPromise().then((connection) => connection.getClient()), 
+    clientPromise: mongoose.connection.asPromise().then((connection) => connection.getClient()),
     ttl: 24 * 60 * 60, // 1 día
     autoRemove: 'native'
   }),
@@ -60,9 +60,11 @@ app.use((req, res, next) => {
   console.log(`[${req.method} ${req.path}] Sesión:`, req.session);
   console.log(`[${req.method} ${req.path}] SessionID:`, req.sessionID);
   // Depurar headers de respuesta
-  res.on('finish', () => {
+  const originalSend = res.send;
+  res.send = function (body) {
     console.log(`[${req.method} ${req.path}] Response headers:`, res.getHeaders());
-  });
+    return originalSend.call(this, body);
+  };
   next();
 });
 
@@ -158,10 +160,29 @@ app.post("/login", async (req, res) => {
     };
 
     console.log("Sesión establecida en /login:", req.session);
-    res.set('Set-Cookie', `connect.sid=${req.sessionID}; Path=/; HttpOnly; SameSite=None`);
-    res.status(200).json({ success: true });
+    console.log("SessionID en /login:", req.sessionID);
+    // Guardar sesión manualmente
+    try {
+      await new Promise((resolve, reject) => {
+        req.session.save((err) => {
+          if (err) {
+            console.error("Error al guardar sesión en /login:", err);
+            reject(err);
+          } else {
+            console.log("Sesión guardada en /login, SID:", req.sessionID);
+            resolve();
+          }
+        });
+      });
+      // Forzar envío de Set-Cookie
+      res.set('Set-Cookie', `connect.sid=${req.sessionID}; Path=/; HttpOnly; SameSite=None`);
+      res.status(200).json({ success: true });
+    } catch (err) {
+      console.error("Error al guardar sesión en /login:", err);
+      return res.status(500).json({ success: false, message: "Error al guardar sesión" });
+    }
   } catch (err) {
-    console.log(err);
+    console.error("Error en /login:", err);
     res.status(500).json({ success: false, message: "Error en el servidor" });
   }
 });
@@ -412,15 +433,25 @@ app.post("/like", async (req, res) => {
 
 
 // Ruta para verificar si el usuario está autenticado
-app.get("/check-auth", (req, res) => {
+app.get("/check-auth", async (req, res) => {
   console.log("Sesión en /check-auth:", req.session);
+  console.log("Cookie en /check-auth:", req.headers.cookie);
+  console.log("SessionID en /check-auth:", req.sessionID);
   if (req.session.usuario) {
     res.json({
       isAuthenticated: true,
       userName: req.session.usuario.nombre,
     });
   } else {
-    res.json({ isAuthenticated: false });
+    const sessionId = req.sessionID;
+    try {
+      const session = await MongoStore.create({ mongoUrl: process.env.MONGO_URI }).get(sessionId);
+      console.log("Sesión recuperada de MongoDB en /check-auth:", session);
+      res.json({ isAuthenticated: false });
+    } catch (err) {
+      console.error("Error al recuperar sesión en /check-auth:", err);
+      res.json({ isAuthenticated: false });
+    }
   }
 });
 
