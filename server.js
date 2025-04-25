@@ -46,8 +46,8 @@ app.use(session({
     autoRemove: 'native'
   }),
   cookie: {
-    secure: process.env.NODE_ENV === "production" ? true : false, // Permitir cookies en desarrollo
-    sameSite: process.env.NODE_ENV === "production" ? 'none' : 'lax',
+    secure: false, // Temporalmente para depuración
+    sameSite: 'none', // Necesario para cross-origin
     httpOnly: true,
     maxAge: 24 * 60 * 60 * 1000, // 1 día
     path: '/'
@@ -59,6 +59,10 @@ app.use((req, res, next) => {
   console.log(`[${req.method} ${req.path}] Cookie recibida:`, req.headers.cookie);
   console.log(`[${req.method} ${req.path}] Sesión:`, req.session);
   console.log(`[${req.method} ${req.path}] SessionID:`, req.sessionID);
+  // Depurar headers de respuesta
+  res.on('finish', () => {
+    console.log(`[${req.method} ${req.path}] Response headers:`, res.getHeaders());
+  });
   next();
 });
 
@@ -154,6 +158,7 @@ app.post("/login", async (req, res) => {
     };
 
     console.log("Sesión establecida en /login:", req.session);
+    res.set('Set-Cookie', `connect.sid=${req.sessionID}; Path=/; HttpOnly; SameSite=None`);
     res.status(200).json({ success: true });
   } catch (err) {
     console.log(err);
