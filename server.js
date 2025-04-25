@@ -24,11 +24,8 @@ const __dirname = path.dirname(__filename);
 // Crear la app de Express
 const app = express();
 
-// Conectar a MongoDB
-mongoose.connect(process.env.MONGO_URI, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true
-})
+// Conectar a MongoDB (sin opciones obsoletas)
+mongoose.connect(process.env.MONGO_URI)
   .then(() => console.log('Conectado a MongoDB'))
   .catch((err) => console.error('Error al conectar a MongoDB:', err));
 
@@ -392,6 +389,16 @@ app.get("/check-auth", async (req, res) => {
   } else {
     console.log("No hay usuario en sesión, verificando MongoDB con SID:", req.sessionID);
     try {
+      // Depurar cookies recibidas
+      const cookieHeader = req.headers.cookie;
+      if (cookieHeader) {
+        const cookies = cookieHeader.split(';').reduce((acc, cookie) => {
+          const [name, value] = cookie.trim().split('=');
+          acc[name] = value;
+          return acc;
+        }, {});
+        console.log("Cookies parseadas en /check-auth:", cookies);
+      }
       const session = await new Promise((resolve, reject) => {
         mongoStore.get(req.sessionID, (err, session) => {
           if (err) {
