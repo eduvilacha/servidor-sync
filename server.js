@@ -24,7 +24,7 @@ const __dirname = path.dirname(__filename);
 // Crear la app de Express
 const app = express();
 
-// Conectar a MongoDB (sin opciones obsoletas)
+// Conectar a MongoDB
 mongoose.connect(process.env.MONGO_URI)
   .then(() => console.log('Conectado a MongoDB'))
   .catch((err) => console.error('Error al conectar a MongoDB:', err));
@@ -57,8 +57,8 @@ app.use(session({
   saveUninitialized: false,
   store: mongoStore,
   cookie: {
-    secure: false, // Temporalmente para depuración
-    sameSite: 'none', // Necesario para cross-origin
+    secure: false, // Cambiar a true en producción con HTTPS
+    sameSite: 'lax', // Probar 'lax' en lugar de 'none' para localhost
     httpOnly: true,
     maxAge: 24 * 60 * 60 * 1000, // 1 día
     path: '/'
@@ -162,7 +162,7 @@ app.post("/login", async (req, res) => {
           }
         });
       });
-      res.set('Set-Cookie', `connect.sid=${req.sessionID}; Path=/; HttpOnly; SameSite=None`);
+      res.set('Set-Cookie', `connect.sid=${req.sessionID}; Path=/; HttpOnly; SameSite=Lax`);
       res.status(200).json({ success: true });
     } catch (err) {
       console.error("Error al guardar sesión en /login:", err);
@@ -398,11 +398,13 @@ app.get("/check-auth", async (req, res) => {
           return acc;
         }, {});
         console.log("Cookies parseadas en /check-auth:", cookies);
+      } else {
+        console.log("No se recibieron cookies en /check-auth");
       }
       const session = await new Promise((resolve, reject) => {
         mongoStore.get(req.sessionID, (err, session) => {
           if (err) {
-            console.error("Error al recuperar sesión de MongoDB:", err);
+            console.error("Error al recuperar sesión de MongoDB:", err.message);
             reject(err);
           } else {
             resolve(session);
@@ -435,11 +437,37 @@ app.get("/test-cookie", async (req, res) => {
         }
       });
     });
-    res.set('Set-Cookie', `connect.sid=${req.sessionID}; Path=/; HttpOnly; SameSite=None`);
+    res.set('Set-Cookie', `connect.sid=${req.sessionID}; Path=/; HttpOnly; SameSite=Lax`);
     res.json({ message: "Cookie de prueba enviada" });
   } catch (err) {
     console.error("Error en /test-cookie:", err);
     res.status(500).json({ message: "Error al guardar sesión" });
+  }
+});
+
+// Endpoint para depurar sesiones
+app.get("/debug-session", async (req, res) => {
+  try {
+    const sessionId = req.sessionID;
+    console.log("Debug: SessionID solicitado:", sessionId);
+    const session = await new Promise((resolve, reject) => {
+      mongoStore.get(sessionId, (err, session) => {
+        if (err) {
+          console.error("Debug: Error al recuperar sesión:", err);
+          reject(err);
+        } else {
+          resolve(session);
+        }
+      });
+    });
+    res.json({
+      sessionId: sessionId,
+      sessionData: session,
+      cookies: req.headers.cookie || "No cookies received"
+    });
+  } catch (err) {
+    console.error("Debug: Error en /debug-session:", err.message);
+    res.status(500).json({ message: "Error al depurar sesión" });
   }
 });
 
