@@ -176,7 +176,19 @@ app.post("/login", async (req, res) => {
 
 // Ruta de logout
 app.get("/logout", (req, res) => {
-  req.session.destroy(() => res.redirect("/login"));
+  req.session.destroy((err) => {
+    if (err) {
+      console.error('Error al destruir la sesión:', err);
+      return res.status(500).json({ success: false, message: 'Error al cerrar sesión' });
+    }
+    res.clearCookie('connect.sid', {
+      path: '/',
+      httpOnly: true,
+      sameSite: 'lax',
+      secure: false, // Cambiar a true en producción con HTTPS
+    });
+    res.status(200).json({ success: true, message: 'Sesión cerrada' });
+  });
 });
 
 // Ruta para el test
