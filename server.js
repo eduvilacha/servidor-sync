@@ -38,7 +38,11 @@ app.use(session({
   secret: '123abc',
   resave: true,
   saveUninitialized: false,
-  store: MongoStore.create({ mongoUrl: process.env.MONGO_URI })
+  store: MongoStore.create({ mongoUrl: process.env.MONGO_URI }),
+  cookie: {
+    secure: process.env.NODE_ENV === "production", // true en producción con HTTPS, false en desarrollo
+    sameSite: process.env.NODE_ENV === "production" ? "none" : "lax" // "none" en producción si dominios son diferentes
+  }
 }));
 
 // Configuración de CORS (debe ir antes de las rutas)
@@ -132,6 +136,7 @@ app.post("/login", async (req, res) => {
       nombre: user.nombre
     };
 
+    console.log("Sesión establecida en /login:", req.session);
     res.status(200).json({ success: true });
   } catch (err) {
     console.log(err);
@@ -386,6 +391,7 @@ app.post("/like", async (req, res) => {
 
 // Ruta para verificar si el usuario está autenticado
 app.get("/check-auth", (req, res) => {
+  console.log("Sesión en /check-auth:", req.session);
   if (req.session.usuario) {
     res.json({
       isAuthenticated: true,
