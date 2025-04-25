@@ -36,15 +36,10 @@ app.use(express.json());
 
 // Configuración de la sesión
 app.use(session({
-  secret: '123abc',
+  secret: process.env.SESSION_SECRET || '123abc',
   resave: false,
   saveUninitialized: false,
-  store: MongoStore.create({
-    mongoUrl: process.env.MONGO_URI,
-    clientPromise: mongoose.connection.asPromise().then((connection) => connection.getClient()),
-    ttl: 24 * 60 * 60, // 1 día
-    autoRemove: 'native'
-  }),
+  store: mongoStore,
   cookie: {
     secure: false, // Temporalmente para depuración
     sameSite: 'none', // Necesario para cross-origin
@@ -59,7 +54,6 @@ app.use((req, res, next) => {
   console.log(`[${req.method} ${req.path}] Cookie recibida:`, req.headers.cookie);
   console.log(`[${req.method} ${req.path}] Sesión:`, req.session);
   console.log(`[${req.method} ${req.path}] SessionID:`, req.sessionID);
-  // Depurar headers de respuesta
   const originalSend = res.send;
   res.send = function (body) {
     console.log(`[${req.method} ${req.path}] Response headers:`, res.getHeaders());
@@ -68,20 +62,34 @@ app.use((req, res, next) => {
   next();
 });
 
+
+// Conectar a MongoDB
+mongoose.connect(process.env.MONGO_URI, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true
+})
+    .then(() => console.log('Conectado a MongoDB'))
+    .catch((err) => console.log('Error al conectar a MongoDB:', err));
+//
+
+const mongoStore = MongoStore.create({
+  mongoUrl: process.env.MONGO_URI,
+  clientPromise: mongoose.connection.asPromise().then((connection) => connection.getClient()),
+  ttl: 24 * 60 * 60, // 1 día
+  autoRemove: 'native'
+});
+
+
 // Configuración de CORS (debe ir antes de las rutas)
 app.use(cors({
   origin: "http://localhost:5173",           // Permite cualquier origen
-  credentials: true      // Permite el uso de cookies
+  credentials: true,      // Permite el uso de cookies
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
 
 app.use(express.static(path.join(__dirname, '../public')));
-
-// Conectar a MongoDB
-mongoose.connect(process.env.MONGO_URI, {
-})
-    .then(() => console.log('Conectado a MongoDB'))
-    .catch((err) => console.log('Error al conectar a MongoDB:', err));
 
     
 //-------------------------------------------------------------
