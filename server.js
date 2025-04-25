@@ -46,9 +46,12 @@ app.use(express.json());
 app.use(cors({
   origin: "http://localhost:5173",
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
+
+// Manejar solicitudes OPTIONS explícitamente
+app.options('*', cors());
 
 // Configuración de la sesión
 app.use(session({
@@ -112,7 +115,7 @@ app.post("/register", async (req, res) => {
     const existingUser = await User.findOne({ nombre });
     if (existingUser) {
       console.log("Este nombre de usuario ya está en uso.");
-      return res.redirect("/register");
+      return res.status(400).json({ success: false, message: "Este nombre de usuario ya está en uso." });
     }
 
     const newUser = new User({
@@ -124,10 +127,10 @@ app.post("/register", async (req, res) => {
     });
 
     await newUser.save();
-    res.redirect("/login");
+    res.status(201).json({ success: true, message: "Usuario registrado correctamente." });
   } catch (err) {
     console.error("Error en /register:", err);
-    res.redirect("/register");
+    res.status(500).json({ success: false, message: "Error al registrar el usuario." });
   }
 });
 
