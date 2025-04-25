@@ -1,38 +1,57 @@
-import express from 'express'; // Importar Express
-import session from 'express-session'; // Importar session
-import mongoose from 'mongoose'; // Importar mongoose para MongoDB
+import express from 'express';
+import session from 'express-session';
+import mongoose from 'mongoose';
 import MongoStore from 'connect-mongo';
-import dotenv from 'dotenv'; // Para añadir el .env
-import path from 'path'; // Para trabajar con rutas de archivos
-import { fileURLToPath } from 'url'; // Para obtener el nombre del archivo actual
+import dotenv from 'dotenv';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import cors from 'cors';
 
-
-
-//IMPORTAR LOS MODELS JS
+// Importar los modelos
 import Pregunta from './models/Preguntas.js';
 import User from './models/User.js';
 import Test from './models/Test.js';
 import Like from './models/Like.js';
 
-
-dotenv.config(); // Cargar las variables de entorno del archivo .env
+// Cargar variables de entorno
+dotenv.config();
 console.log("NODE_ENV:", process.env.NODE_ENV);
 
-// Configurar las rutas de los archivos
+// Configurar rutas de archivos
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // Crear la app de Express
 const app = express();
 
-// Configuración de Express
-app.set("views", path.join(__dirname, "views")); // Configuración de las vistas (EJS)
-app.set("view engine", "ejs"); // Usamos EJS para las vistas
+// Conectar a MongoDB
+mongoose.connect(process.env.MONGO_URI, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true
+})
+  .then(() => console.log('Conectado a MongoDB'))
+  .catch((err) => console.error('Error al conectar a MongoDB:', err));
 
-app.use(express.urlencoded({ extended: true })); // Para poder recibir datos del formulario
+// Crear una instancia única de MongoStore
+const mongoStore = MongoStore.create({
+  mongoUrl: process.env.MONGO_URI,
+  ttl: 24 * 60 * 60, // 1 día
+  autoRemove: 'native'
+});
+
+// Configuración de Express
+app.set("views", path.join(__dirname, "views"));
+app.set("view engine", "ejs");
+app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
+// Configuración de CORS
+app.use(cors({
+  origin: "http://localhost:5173",
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
 
 // Configuración de la sesión
 app.use(session({
@@ -62,75 +81,43 @@ app.use((req, res, next) => {
   next();
 });
 
-
-// Conectar a MongoDB
-mongoose.connect(process.env.MONGO_URI, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true
-})
-    .then(() => console.log('Conectado a MongoDB'))
-    .catch((err) => console.log('Error al conectar a MongoDB:', err));
-//
-
-const mongoStore = MongoStore.create({
-  mongoUrl: process.env.MONGO_URI,
-  clientPromise: mongoose.connection.asPromise().then((connection) => connection.getClient()),
-  ttl: 24 * 60 * 60, // 1 día
-  autoRemove: 'native'
-});
-
-
-// Configuración de CORS (debe ir antes de las rutas)
-app.use(cors({
-  origin: "http://localhost:5173",           // Permite cualquier origen
-  credentials: true,      // Permite el uso de cookies
-  methods: ['GET', 'POST', 'PUT', 'DELETE'],
-  allowedHeaders: ['Content-Type', 'Authorization']
-}));
-
-
+// Servir archivos estáticos
 app.use(express.static(path.join(__dirname, '../public')));
 
-    
-//-------------------------------------------------------------
-//-------------------------RUTAS-------------------------------
+// -------------------------RUTAS-------------------------------
 
-//------------RUTA PRINCIPAL------------------
+// Ruta principal
 app.get("/", (req, res) => {
-    if (!req.session.usuario) {
-        return res.redirect("/login"); // Si no hay sesión, redirigir a login
-    }
-    res.render("index", { usuario: req.session.usuario });  // Si hay sesión, renderizamos la página principal
+  if (!req.session.usuario) {
+    return res.redirect("/login");
+  }
+  res.render("index", { usuario: req.session.usuario });
 });
-  
-//--------------------------------------------
-//------------RUTA DE LOGIN (GET)-------------
+
+// Ruta de login (GET)
 app.get("/login", (req, res) => {
-    if (req.session.usuario) {
-        return res.redirect("/"); // Si ya está logueado, redirigir a la home
-    }
-    res.render("login"); // Renderizamos la vista de login
+  if (req.session.usuario) {
+    return res.redirect("/");
+  }
+  res.render("login");
 });
 
-//--------------------------------------------
-//----------RUTA DE REGISTRO (GET)------------ 
+// Ruta de registro (GET)
 app.get("/register", (req, res) => {
-    res.render("register"); // Renderizamos la vista de registro
+  res.render("register");
 });
 
-// Ruta POST de registro
+// Ruta de registro (POST)
 app.post("/register", async (req, res) => {
   const { nombre, edad, genero, provincia, contrasena } = req.body;
 
   try {
-    // Comprobar si ya existe un usuario con ese nombre
     const existingUser = await User.findOne({ nombre });
     if (existingUser) {
       console.log("Este nombre de usuario ya está en uso.");
-      return res.redirect("/register"); 
+      return res.redirect("/register");
     }
 
-    // Crear el nuevo usuario
     const newUser = new User({
       nombre,
       edad,
@@ -138,20 +125,16 @@ app.post("/register", async (req, res) => {
       provincia,
       contrasena
     });
-  
-      // Guardar al usuario en la base de datos
-      await newUser.save();
-  
-      // Redirigir al login después de crear la cuenta
-      res.redirect("/login");
-    } catch (err) {
-      console.log(err);
-      res.redirect("/register");  // En caso de error
-    }
+
+    await newUser.save();
+    res.redirect("/login");
+  } catch (err) {
+    console.error("Error en /register:", err);
+    res.redirect("/register");
+  }
 });
 
-//--------------------------------------------
-//------------RUTA DE LOGIN (POST)------------
+// Ruta de login (POST)
 app.post("/login", async (req, res) => {
   const { nombre, contrasena } = req.body;
 
@@ -159,6 +142,7 @@ app.post("/login", async (req, res) => {
     const user = await User.findOne({ nombre });
 
     if (!user || user.contrasena !== contrasena) {
+      console.log("Error en /login: Usuario o contraseña incorrectos");
       return res.status(401).json({ success: false, message: "Usuario o contraseña incorrectos" });
     }
 
@@ -169,7 +153,6 @@ app.post("/login", async (req, res) => {
 
     console.log("Sesión establecida en /login:", req.session);
     console.log("SessionID en /login:", req.sessionID);
-    // Guardar sesión manualmente
     try {
       await new Promise((resolve, reject) => {
         req.session.save((err) => {
@@ -182,7 +165,6 @@ app.post("/login", async (req, res) => {
           }
         });
       });
-      // Forzar envío de Set-Cookie
       res.set('Set-Cookie', `connect.sid=${req.sessionID}; Path=/; HttpOnly; SameSite=None`);
       res.status(200).json({ success: true });
     } catch (err) {
@@ -195,27 +177,21 @@ app.post("/login", async (req, res) => {
   }
 });
 
-//--------------------------------------------
-//--------------RUTA DE LOGOUT----------------
+// Ruta de logout
 app.get("/logout", (req, res) => {
-    req.session.destroy(() => res.redirect("/login"));
+  req.session.destroy(() => res.redirect("/login"));
 });
 
-//--------------------------------------------
-//-------------RUTA PARA EL TEST--------------
+// Ruta para el test
 app.get("/test", async (req, res) => {
-  // Suponiendo que la sesión tiene al usuario logueado
-  const user = await User.findById(req.session.usuario._id);
+  const user = await User.findById(req.session.usuario?._id);
 
   if (user && user.haHechoTest) {
     return res.redirect("/testCompletado");
-  }  
+  }
 
   try {
-    // Obtener todas las preguntas de la base de datos
     const preguntas = await Pregunta.find();
-
-    // Si no ha hecho el test, renderizamos el formulario con las preguntas
     res.render("test", { preguntas });
   } catch (err) {
     console.error("Error al obtener las preguntas:", err);
@@ -223,15 +199,12 @@ app.get("/test", async (req, res) => {
   }
 });
 
-//---------RUTA PROCESAR RESPUESTAS TEST--------- 
+// Procesar respuestas del test
 app.post('/test', async (req, res) => {
   try {
-    const respuestas = req.body.respuestas; // Recibimos las respuestas enviadas
-
-    // Obtener el usuario logueado
+    const respuestas = req.body.respuestas;
     const usuario = await User.findById(req.session.usuario._id);
 
-    // Crear un nuevo objeto Test para guardar las respuestas
     const nuevoTest = new Test({
       usuario: usuario._id,
       respuestas: respuestas,
@@ -239,34 +212,27 @@ app.post('/test', async (req, res) => {
 
     await nuevoTest.save();
 
-    // Marcar como que hizo el test
     await User.updateOne(
       { _id: usuario._id },
       { $set: { haHechoTest: true } }
     );
 
     res.redirect("/testCompletado");
-
   } catch (error) {
-    console.error("Error al guardar el test", error);
+    console.error("Error al guardar el test:", error);
     res.send("Hubo un error al procesar el test");
   }
 });
 
-//---------RUTA PARA TEST COMPLETADO---------
+// Ruta para test completado
 app.get("/testCompletado", (req, res) => {
   if (!req.session.usuario) {
     return res.redirect("/login");
   }
-
-  // Pasamos directamente lo que hay en sesión a la vista
   res.render("testCompletado", { usuario: req.session.usuario });
 });
 
-
-
-//--------------------------------------------
-//-----------RUTA PARA PERFIL(GET)------------
+// Ruta para perfil (GET)
 app.get("/perfil", async (req, res) => {
   if (!req.session.usuario) {
     return res.redirect("/login");
@@ -281,24 +247,21 @@ app.get("/perfil", async (req, res) => {
   }
 });
 
-//-----------RUTA PARA PERFIL(POST)------------
+// Ruta para perfil (POST)
 app.post("/perfil", async (req, res) => {
   if (!req.session.usuario) {
-    return res.redirect("/login"); // Si no hay sesión, redirigir a login
+    return res.redirect("/login");
   }
 
   const { provincia, contrasena } = req.body;
 
   try {
-    // Buscar al usuario en la base de datos usando el nombre desde la sesión
     const usuario = await User.findById(req.session.usuario._id);
 
     if (!usuario) {
-      // Si el usuario no se encuentra, redirigirlo al login
       return res.redirect("/login");
     }
 
-    // Actualizamos los campos permitidos
     if (provincia) {
       usuario.provincia = provincia;
     }
@@ -307,10 +270,7 @@ app.post("/perfil", async (req, res) => {
       usuario.contrasena = contrasena;
     }
 
-    // Guardamos los cambios
     await usuario.save();
-
-    // Redirigir a la página de perfil después de la actualización
     res.redirect("/perfil");
   } catch (err) {
     console.error("Error al actualizar perfil:", err);
@@ -318,33 +278,27 @@ app.post("/perfil", async (req, res) => {
   }
 });
 
-
-//--------------------------------------------
-//--------------RUTA PARA TOP5----------------
+// Ruta para top5
 app.get("/top5", async (req, res) => {
   if (!req.session.usuario) {
     return res.redirect("/login");
   }
 
   try {
-    // Obtener el test del usuario logeado
     const miTest = await Test.findOne({ usuario: req.session.usuario._id });
 
     if (!miTest) {
       return res.send("Aún no has realizado el test.");
     }
 
-    // Obtener todos los tests excepto el mío
     const otrosTests = await Test.find({ usuario: { $ne: req.session.usuario._id } }).populate("usuario");
 
-    // Array para guardar compatibilidades
     const compatibilidades = [];
 
     otrosTests.forEach((test) => {
       const respuestasOtro = test.respuestas;
       const respuestasMias = miTest.respuestas;
 
-      // Calcular porcentaje de coincidencia
       let coincidencias = 0;
       respuestasMias.forEach((respuesta, index) => {
         if (respuesta === respuestasOtro[index]) {
@@ -360,20 +314,15 @@ app.get("/top5", async (req, res) => {
       });
     });
 
-    // Ordenar de mayor a menor
     compatibilidades.sort((a, b) => b.porcentaje - a.porcentaje);
-
-    // Seleccionar top 5
     const top5 = compatibilidades.slice(0, 5);
 
-    //bucle de likes
     for (const item of top5) {
-      // Ver si el usuario logueado ya le dio like a este usuario
       const likeDado = await Like.findOne({
         de: req.session.usuario._id,
         para: item.usuario._id
       });
-    
+
       if (likeDado && likeDado.match) {
         item.estado = "match";
       } else if (likeDado) {
@@ -382,9 +331,7 @@ app.get("/top5", async (req, res) => {
         item.estado = "normal";
       }
     }
-            
 
-    // Renderizar la vista pasando el top 5
     res.render("top5", { usuario: req.session.usuario, top5 });
   } catch (error) {
     console.error("Error al cargar top 5:", error);
@@ -392,24 +339,19 @@ app.get("/top5", async (req, res) => {
   }
 });
 
-
-//--------------------------------------------
-//-------------RUTA PARA LIKES----------------
-
+// Ruta para likes
 app.post("/like", async (req, res) => {
   if (!req.session.usuario) return res.status(401).send("No autorizado");
 
   const { targetUserId } = req.body;
 
   try {
-    // Ver si ya existe un like previo de este usuario a target
     let existingLike = await Like.findOne({
       de: req.session.usuario._id,
       para: targetUserId
     });
 
     if (!existingLike) {
-      // Crear nuevo like
       existingLike = new Like({
         de: req.session.usuario._id,
         para: targetUserId
@@ -417,14 +359,12 @@ app.post("/like", async (req, res) => {
       await existingLike.save();
     }
 
-    // Verificar si la otra persona también dio like
     const reciprocalLike = await Like.findOne({
       de: targetUserId,
       para: req.session.usuario._id
     });
 
     if (reciprocalLike) {
-      // Si ambos dieron like, actualizar ambos a match
       existingLike.match = true;
       reciprocalLike.match = true;
       await existingLike.save();
@@ -433,45 +373,71 @@ app.post("/like", async (req, res) => {
 
     res.send("Like registrado");
   } catch (err) {
-    console.error(err);
+    console.error("Error al registrar like:", err);
     res.status(500).send("Error al registrar like");
   }
 });
 
-
-
-// Ruta para verificar si el usuario está autenticado
+// Ruta para verificar autenticación
 app.get("/check-auth", async (req, res) => {
   console.log("Sesión en /check-auth:", req.session);
   console.log("Cookie en /check-auth:", req.headers.cookie);
   console.log("SessionID en /check-auth:", req.sessionID);
   if (req.session.usuario) {
+    console.log("Usuario autenticado:", req.session.usuario);
     res.json({
       isAuthenticated: true,
       userName: req.session.usuario.nombre,
     });
   } else {
-    const sessionId = req.sessionID;
+    console.log("No hay usuario en sesión, verificando MongoDB con SID:", req.sessionID);
     try {
-      const session = await MongoStore.create({ mongoUrl: process.env.MONGO_URI }).get(sessionId);
+      const session = await new Promise((resolve, reject) => {
+        mongoStore.get(req.sessionID, (err, session) => {
+          if (err) {
+            console.error("Error al recuperar sesión de MongoDB:", err);
+            reject(err);
+          } else {
+            resolve(session);
+          }
+        });
+      });
       console.log("Sesión recuperada de MongoDB en /check-auth:", session);
       res.json({ isAuthenticated: false });
     } catch (err) {
-      console.error("Error al recuperar sesión en /check-auth:", err);
+      console.error("Error al recuperar sesión en /check-auth:", err.message);
       res.json({ isAuthenticated: false });
     }
   }
 });
 
+// Endpoint de prueba para cookies
+app.get("/test-cookie", async (req, res) => {
+  req.session.test = "prueba";
+  console.log("Sesión de prueba:", req.session);
+  console.log("SessionID de prueba:", req.sessionID);
+  try {
+    await new Promise((resolve, reject) => {
+      req.session.save((err) => {
+        if (err) {
+          console.error("Error al guardar sesión de prueba:", err);
+          reject(err);
+        } else {
+          console.log("Sesión de prueba guardada, SID:", req.sessionID);
+          resolve();
+        }
+      });
+    });
+    res.set('Set-Cookie', `connect.sid=${req.sessionID}; Path=/; HttpOnly; SameSite=None`);
+    res.json({ message: "Cookie de prueba enviada" });
+  } catch (err) {
+    console.error("Error en /test-cookie:", err);
+    res.status(500).json({ message: "Error al guardar sesión" });
+  }
+});
 
-
-
-
-//------------------------------------------------------------------  
-//------------------------------------------------------------------  
 // Levantar servidor
 const PORT = process.env.PORT || 4000;
 app.listen(PORT, () => {
-    console.log(`Servidor escuchando en puerto ${PORT}`);
+  console.log(`Servidor escuchando en puerto ${PORT}`);
 });
-
