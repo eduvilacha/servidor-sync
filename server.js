@@ -39,12 +39,28 @@ app.use(session({
   secret: '123abc',
   resave: true,
   saveUninitialized: false,
-  store: MongoStore.create({ mongoUrl: process.env.MONGO_URI }),
+  store: MongoStore.create({ 
+    mongoUrl: process.env.MONGO_URI,
+    clientPromise: mongoose.connection.asPromise().then((connection) => connection.getClient()), 
+    ttl: 24 * 60 * 60, // 1 día
+    autoRemove: 'native'
+  }),
   cookie: {
-    secure: process.env.NODE_ENV === "production", // true en producción con HTTPS, false en desarrollo
-    sameSite: process.env.NODE_ENV === "production" ? "none" : "lax" // "none" en producción si dominios son diferentes
+    secure: process.env.NODE_ENV === "production" ? true : false, // Permitir cookies en desarrollo
+    sameSite: process.env.NODE_ENV === "production" ? 'none' : 'lax',
+    httpOnly: true,
+    maxAge: 24 * 60 * 60 * 1000, // 1 día
+    path: '/'
   }
 }));
+
+// Middleware para depurar cookies y sesiones
+app.use((req, res, next) => {
+  console.log(`[${req.method} ${req.path}] Cookie recibida:`, req.headers.cookie);
+  console.log(`[${req.method} ${req.path}] Sesión:`, req.session);
+  console.log(`[${req.method} ${req.path}] SessionID:`, req.sessionID);
+  next();
+});
 
 // Configuración de CORS (debe ir antes de las rutas)
 app.use(cors({
