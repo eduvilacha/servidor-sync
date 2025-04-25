@@ -51,7 +51,7 @@ app.use(cors({
 }));
 
 // Manejar solicitudes OPTIONS explícitamente
-app.options('*', cors());
+app.options(/^\/.*$/, cors()); // con regex
 
 // Configuración de la sesión
 app.use(session({
