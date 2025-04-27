@@ -155,25 +155,30 @@ app.post("/login", async (req, res) => {
 
     console.log("Sesión establecida en /login:", req.session);
     console.log("SessionID en /login:", req.sessionID);
-    try {
-      req.session.save((err) => {
-        if (err) {
-          console.error("Error al guardar sesión en /login:", err);
-          return res.status(500).json({ success: false, message: "Error al guardar sesión" });
-        }
-        console.log("Sesión guardada en /login, SID:", req.sessionID);
-        res.status(200).json({ success: true });
+
+    req.session.save((err) => {
+      if (err) {
+        console.error("Error al guardar sesión en /login:", err);
+        return res.status(500).json({ success: false, message: "Error al guardar sesión" });
+      }
+      console.log("Sesión guardada en /login, SID:", req.sessionID);
+
+      // 🔥 ESTO es lo que debes agregar para mandar la cookie bien:
+      res.cookie('connect.sid', req.sessionID, {
+        path: '/',
+        httpOnly: true,
+        sameSite: 'None',
+        secure: true,
       });
-      
-    } catch (err) {
-      console.error("Error al guardar sesión en /login:", err);
-      return res.status(500).json({ success: false, message: "Error al guardar sesión" });
-    }
+
+      res.status(200).json({ success: true });
+    });
   } catch (err) {
     console.error("Error en /login:", err);
     res.status(500).json({ success: false, message: "Error en el servidor" });
   }
 });
+
 
 // Ruta de logout
 app.get("/logout", (req, res) => {
