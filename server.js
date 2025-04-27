@@ -60,13 +60,14 @@ app.use(session({
   saveUninitialized: false,
   store: mongoStore,
   cookie: {
-    secure: false, // Cambiar a true en producción con HTTPS
-    sameSite: 'lax', // Probar 'lax' en lugar de 'none' para localhost
+    secure: process.env.NODE_ENV === 'production', // Solo true si estás en producción
+    sameSite: process.env.NODE_ENV === 'production' ? 'None' : 'Lax', // 'None' en producción
     httpOnly: true,
     maxAge: 24 * 60 * 60 * 1000, // 1 día
     path: '/'
   }
 }));
+
 
 // Middleware para depurar cookies y sesiones
 app.use((req, res, next) => {
