@@ -13,15 +13,12 @@ import User from './models/User.js';
 import Test from './models/Test.js';
 import Like from './models/Like.js';
 
-// Cargar variables de entorno
 dotenv.config();
 console.log("NODE_ENV:", process.env.NODE_ENV);
 
-// Configurar rutas de archivos
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Crear la app de Express
 const app = express();
 
 // Conectar a MongoDB
@@ -29,62 +26,60 @@ mongoose.connect(process.env.MONGO_URI)
   .then(() => console.log('Conectado a MongoDB'))
   .catch((err) => console.error('Error al conectar a MongoDB:', err));
 
-// Crear una instancia única de MongoStore
+// Crear instancia de mongoStore
 const mongoStore = MongoStore.create({
   mongoUrl: process.env.MONGO_URI,
-  ttl: 24 * 60 * 60, // 1 día
+  ttl: 24 * 60 * 60,
   autoRemove: 'native'
 });
 
-// Configuración de Express
-app.set("views", path.join(__dirname, "views"));
-app.set("view engine", "ejs");
+// -------- CONFIGURACIÓN --------
+
+// Configurar CORS bien
+const allowedOrigins = [
+  "http://localhost:5173",
+  "https://syncronizados.netlify.app"
+];
+
+app.use(cors({
+  origin: function (origin, callback) {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('CORS: origen no permitido'));
+    }
+  },
+  credentials: true,
+}));
+
+// Configurar Express
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
-// Configuración de CORS
-app.use(cors({
-  origin: "http://localhost:5173",
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'Cookie', 'Set-Cookie']
-}));
-
-// Manejar solicitudes OPTIONS explícitamente
-app.options(/^\/.*$/, cors()); // con regex
-
-// Configuración de la sesión
+// Configurar Sesiones
 app.use(session({
   secret: process.env.SESSION_SECRET || '123abc',
   resave: false,
   saveUninitialized: false,
   store: mongoStore,
   cookie: {
-    secure: true, // 🔥 SIEMPRE TRUE cuando Render usa HTTPS
-    sameSite: 'None', // 🔥 Necesario para cross-site cookies
+    secure: true,
+    sameSite: 'None',
     httpOnly: true,
-    maxAge: 24 * 60 * 60 * 1000, // 1 día
+    maxAge: 24 * 60 * 60 * 1000,
     path: '/'
   }
 }));
 
-
-
-// Middleware para depurar cookies y sesiones
+// Middleware de debug de cookies y sesión
 app.use((req, res, next) => {
   console.log(`[${req.method} ${req.path}] Cookie recibida:`, req.headers.cookie);
   console.log(`[${req.method} ${req.path}] Sesión:`, req.session);
-  console.log(`[${req.method} ${req.path}] SessionID:`, req.sessionID);
-  const originalSend = res.send;
-  res.send = function (body) {
-    console.log(`[${req.method} ${req.path}] Response headers:`, res.getHeaders());
-    return originalSend.call(this, body);
-  };
   next();
 });
 
-// Servir archivos estáticos
-app.use('/public', express.static(path.join(__dirname, '../public')));
+
+
 
 // -------------------------RUTAS-------------------------------
 
@@ -158,21 +153,12 @@ app.post("/login", async (req, res) => {
 
     req.session.save((err) => {
       if (err) {
-        console.error("Error al guardar sesión en /login:", err);
+        console.error("Error al guardar sesión:", err);
         return res.status(500).json({ success: false, message: "Error al guardar sesión" });
       }
-      console.log("Sesión guardada en /login, SID:", req.sessionID);
-
-      // 🔥 ESTO es lo que debes agregar para mandar la cookie bien:
-      res.cookie('connect.sid', req.sessionID, {
-        path: '/',
-        httpOnly: true,
-        sameSite: 'None',
-        secure: true,
-      });
-
       res.status(200).json({ success: true });
     });
+    
   } catch (err) {
     console.error("Error en /login:", err);
     res.status(500).json({ success: false, message: "Error en el servidor" });
@@ -190,9 +176,10 @@ app.get("/logout", (req, res) => {
     res.clearCookie('connect.sid', {
       path: '/',
       httpOnly: true,
-      sameSite: 'lax',
-      secure: false, // Cambiar a true en producción con HTTPS
+      sameSite: 'None',
+      secure: true,
     });
+    
     res.status(200).json({ success: true, message: 'Sesión cerrada' });
   });
 });
@@ -438,30 +425,6 @@ app.get("/check-auth", async (req, res) => {
   }
 });
 
-// Endpoint de prueba para cookies
-app.get("/test-cookie", async (req, res) => {
-  req.session.test = "prueba";
-  console.log("Sesión de prueba:", req.session);
-  console.log("SessionID de prueba:", req.sessionID);
-  try {
-    await new Promise((resolve, reject) => {
-      req.session.save((err) => {
-        if (err) {
-          console.error("Error al guardar sesión de prueba:", err);
-          reject(err);
-        } else {
-          console.log("Sesión de prueba guardada, SID:", req.sessionID);
-          resolve();
-        }
-      });
-    });
-    res.set('Set-Cookie', `connect.sid=${req.sessionID}; Path=/; HttpOnly; SameSite=Lax`);
-    res.json({ message: "Cookie de prueba enviada" });
-  } catch (err) {
-    console.error("Error en /test-cookie:", err);
-    res.status(500).json({ message: "Error al guardar sesión" });
-  }
-});
 
 // Endpoint para depurar sesiones
 app.get("/debug-session", async (req, res) => {
