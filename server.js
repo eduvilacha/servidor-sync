@@ -47,7 +47,7 @@ app.use(cors({
   origin: "http://localhost:5173",
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  allowedHeaders: ['Content-Type', 'Authorization', 'Cookie', 'Set-Cookie']
 }));
 
 // Manejar solicitudes OPTIONS explícitamente
@@ -154,19 +154,15 @@ app.post("/login", async (req, res) => {
     console.log("Sesión establecida en /login:", req.session);
     console.log("SessionID en /login:", req.sessionID);
     try {
-      await new Promise((resolve, reject) => {
-        req.session.save((err) => {
-          if (err) {
-            console.error("Error al guardar sesión en /login:", err);
-            reject(err);
-          } else {
-            console.log("Sesión guardada en /login, SID:", req.sessionID);
-            resolve();
-          }
-        });
+      req.session.save((err) => {
+        if (err) {
+          console.error("Error al guardar sesión en /login:", err);
+          return res.status(500).json({ success: false, message: "Error al guardar sesión" });
+        }
+        console.log("Sesión guardada en /login, SID:", req.sessionID);
+        res.status(200).json({ success: true });
       });
-      res.set('Set-Cookie', `connect.sid=${req.sessionID}; Path=/; HttpOnly; SameSite=Lax`);
-      res.status(200).json({ success: true });
+      
     } catch (err) {
       console.error("Error al guardar sesión en /login:", err);
       return res.status(500).json({ success: false, message: "Error al guardar sesión" });
