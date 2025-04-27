@@ -156,8 +156,11 @@ app.post("/login", async (req, res) => {
         console.error("Error al guardar sesión:", err);
         return res.status(500).json({ success: false, message: "Error al guardar sesión" });
       }
+      res.setHeader('Access-Control-Allow-Origin', 'https://syncronizados.netlify.app');
+      res.setHeader('Access-Control-Allow-Credentials', 'true');
       res.status(200).json({ success: true });
     });
+    
     
   } catch (err) {
     console.error("Error en /login:", err);
