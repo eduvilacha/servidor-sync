@@ -248,6 +248,17 @@ app.post("/like", async (req, res) => {
   }
 });
 
+app.get("/preguntas", async (req, res) => {
+  try {
+    const preguntas = await Pregunta.find();
+    res.json(preguntas);
+  } catch (err) {
+    console.error("Error al obtener preguntas:", err);
+    res.status(500).json({ message: "Error al obtener preguntas" });
+  }
+});
+
+
 // Levantar servidor
 const PORT = process.env.PORT || 4000;
 app.listen(PORT, () => {
