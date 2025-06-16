@@ -146,7 +146,7 @@ app.post("/register", async (req, res) => {
 
 // Ruta para verificar autenticación
 app.get("/check-auth", async (req, res) => {
-  // 🔥 AÑADIR ESTAS CABECERAS para CORS correcto
+
   res.setHeader('Access-Control-Allow-Origin', 'https://syncronizados.netlify.app');
   res.setHeader('Access-Control-Allow-Credentials', 'true');
 
