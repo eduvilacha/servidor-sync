@@ -16,6 +16,8 @@ import Like from './models/Like.js';
 // Configuración inicial
 dotenv.config();
 console.log("NODE_ENV:", process.env.NODE_ENV);
+import cookieParser from 'cookie-parser';
+app.use(cookieParser());
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
