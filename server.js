@@ -100,8 +100,6 @@ app.post("/login", async (req, res) => {
         console.error("Error guardando sesión:", err);
         return res.status(500).json({ success: false, message: "Error al guardar sesión" });
       }
-      res.setHeader('Access-Control-Allow-Origin', 'https://syncronizados.netlify.app');
-      res.setHeader('Access-Control-Allow-Credentials', 'true');
       res.status(200).json({ success: true });
     });
   } catch (err) {
@@ -146,9 +144,6 @@ app.post("/register", async (req, res) => {
 
 // Ruta para verificar autenticación
 app.get("/check-auth", async (req, res) => {
-
-  res.setHeader('Access-Control-Allow-Origin', 'https://syncronizados.netlify.app');
-  res.setHeader('Access-Control-Allow-Credentials', 'true');
 
   if (req.session.usuario) {
     return res.json({
@@ -247,9 +242,6 @@ app.post("/like", async (req, res) => {
 });
 
 app.get("/preguntas", async (req, res) => {
-  res.setHeader("Access-Control-Allow-Origin", "https://syncronizados.netlify.app");
-  res.setHeader("Access-Control-Allow-Credentials", "true");
-
   if (!req.session.usuario) {
     return res.status(401).json({ message: "No autorizado" });
   }
