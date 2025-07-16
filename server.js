@@ -255,6 +255,35 @@ app.get("/preguntas", async (req, res) => {
   }
 });
 
+app.post("/test", async (req, res) => {
+  if (!req.session.usuario) {
+    return res.status(401).json({ success: false, message: "No autorizado" });
+  }
+
+  const { respuestas } = req.body;
+
+  if (!Array.isArray(respuestas)) {
+    return res.status(400).json({ success: false, message: "Formato de respuestas incorrecto" });
+  }
+
+  try {
+    const existente = await Test.findOne({ usuario: req.session.usuario._id });
+    if (existente) {
+      existente.respuestas = respuestas;
+      await existente.save();
+    } else {
+      const nuevo = new Test({ usuario: req.session.usuario._id, respuestas });
+      await nuevo.save();
+    }
+
+    res.status(200).json({ success: true });
+  } catch (err) {
+    console.error("Error al guardar test:", err);
+    res.status(500).json({ success: false, message: "Error al guardar test" });
+  }
+});
+
+
 // Ruta no encontrada
 app.use((req, res) => {
   console.log(`Ruta no encontrada: ${req.method} ${req.originalUrl}`);
