@@ -249,6 +249,10 @@ app.post("/like", async (req, res) => {
 });
 
 app.get("/preguntas", async (req, res) => {
+  if (!req.session.usuario) {
+    return res.status(401).json({ success: false, message: "No autorizado" });
+  }
+
   try {
     const preguntas = await Pregunta.find();
     res.json(preguntas);
@@ -257,6 +261,7 @@ app.get("/preguntas", async (req, res) => {
     res.status(500).json({ message: "Error al obtener preguntas" });
   }
 });
+
 
 
 // Levantar servidor
