@@ -249,8 +249,11 @@ app.post("/like", async (req, res) => {
 });
 
 app.get("/preguntas", async (req, res) => {
+  res.setHeader("Access-Control-Allow-Origin", "https://syncronizados.netlify.app");
+  res.setHeader("Access-Control-Allow-Credentials", "true");
+
   if (!req.session.usuario) {
-    return res.status(401).json({ success: false, message: "No autorizado" });
+    return res.status(401).json({ message: "No autorizado" });
   }
 
   try {
@@ -261,6 +264,7 @@ app.get("/preguntas", async (req, res) => {
     res.status(500).json({ message: "Error al obtener preguntas" });
   }
 });
+
 
 
 
