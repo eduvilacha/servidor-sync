@@ -16,13 +16,15 @@ import Like from './models/Like.js';
 // Configuración inicial
 dotenv.config();
 console.log("NODE_ENV:", process.env.NODE_ENV);
+
+const app = express();
 import cookieParser from 'cookie-parser';
 app.use(cookieParser());
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const app = express();
+
 app.set('trust proxy', 1);
 
 // Conectar a MongoDB
