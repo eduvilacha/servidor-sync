@@ -3,8 +3,7 @@ import session from 'express-session';
 import mongoose from 'mongoose';
 import MongoStore from 'connect-mongo';
 import dotenv from 'dotenv';
-import path from 'path';
-import { fileURLToPath } from 'url';
+
 import cors from 'cors';
 
 // Importar modelos
@@ -20,9 +19,6 @@ console.log("NODE_ENV:", process.env.NODE_ENV);
 const app = express();
 import cookieParser from 'cookie-parser';
 app.use(cookieParser());
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 
 
 app.set('trust proxy', 1);
@@ -265,6 +261,12 @@ app.get("/preguntas", async (req, res) => {
     console.error("Error al obtener preguntas:", err);
     res.status(500).json({ message: "Error al obtener preguntas" });
   }
+});
+
+// Ruta no encontrada
+app.use((req, res) => {
+  console.log(`Ruta no encontrada: ${req.method} ${req.originalUrl}`);
+  res.status(404).json({ message: 'Not Found' });
 });
 
 
