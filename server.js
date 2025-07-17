@@ -283,6 +283,23 @@ app.post("/test", async (req, res) => {
   }
 });
 
+// Ruta para verificar si el usuario ya hizo el test
+app.get("/test-realizado", async (req, res) => {
+  if (!req.session.usuario) {
+    return res.status(401).json({ realizado: false });
+  }
+
+  try {
+    const test = await Test.findOne({ usuario: req.session.usuario._id });
+    const yaHecho = test && Array.isArray(test.respuestas) && test.respuestas.length > 0;
+    res.json({ realizado: yaHecho });
+  } catch (err) {
+    console.error("Error verificando test realizado:", err);
+    res.status(500).json({ realizado: false });
+  }
+});
+
+
 
 // Ruta no encontrada
 app.use((req, res) => {
