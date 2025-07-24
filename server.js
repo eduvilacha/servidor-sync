@@ -38,7 +38,8 @@ const mongoStore = MongoStore.create({
 // Configuración de CORS
 const allowedOrigins = [
   "http://localhost:5173",
-  "https://sync-8dss.onrender.com"
+  "https://sync-8dss.onrender.com",
+  "https://sync-8dss.onrender.com/"
 ];
 
 app.use(cors({
