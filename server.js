@@ -74,7 +74,7 @@ app.use(session({
   store: mongoStore,
   cookie: {
     secure: true,
-    sameSite: 'None',
+    sameSite: 'Lax',
     httpOnly: true,
     maxAge: 24 * 60 * 60 * 1000,
     path: '/'
