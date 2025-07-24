@@ -38,7 +38,7 @@ const mongoStore = MongoStore.create({
 // Configuración de CORS
 const allowedOrigins = [
   "http://localhost:5173",
-  "https://syncronizados.netlify.app"
+  "https://sync-8dss.onrender.com"
 ];
 
 app.use(cors({
@@ -54,7 +54,7 @@ app.use(cors({
 
 app.use((req, res, next) => {
   res.setHeader("Access-Control-Allow-Credentials", "true");
-  res.setHeader("Access-Control-Allow-Origin", "https://syncronizados.netlify.app");
+  res.setHeader("Access-Control-Allow-Origin", "https://sync-8dss.onrender.com");
   res.setHeader("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
   next();
