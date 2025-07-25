@@ -39,7 +39,6 @@ const mongoStore = MongoStore.create({
 const allowedOrigins = [
   "http://localhost:5173",
   "https://sync-8dss.onrender.com",
-  "https://sync-8dss.onrender.com/"
 ];
 
 app.use(cors({
@@ -74,7 +73,7 @@ app.use(session({
   store: mongoStore,
   cookie: {
     secure: true,
-    sameSite: 'Lax',
+    sameSite: 'None',
     httpOnly: true,
     maxAge: 24 * 60 * 60 * 1000,
     path: '/'
@@ -128,7 +127,7 @@ app.get("/logout", (req, res) => {
     res.clearCookie('connect.sid', {
       path: '/',
       httpOnly: true,
-      sameSite: 'Lax',
+      sameSite: 'None',
       secure: true,
     });
     res.status(200).json({ success: true, message: "Sesión cerrada" });
