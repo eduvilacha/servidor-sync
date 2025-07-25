@@ -128,7 +128,7 @@ app.get("/logout", (req, res) => {
     res.clearCookie('connect.sid', {
       path: '/',
       httpOnly: true,
-      sameSite: 'None',
+      sameSite: 'Lax',
       secure: true,
     });
     res.status(200).json({ success: true, message: "Sesión cerrada" });
