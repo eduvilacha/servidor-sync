@@ -21,6 +21,7 @@ import cookieParser from 'cookie-parser';
 app.use(cookieParser());
 
 
+
 app.set('trust proxy', 1);
 
 // Conectar a MongoDB
@@ -87,12 +88,14 @@ app.use((req, res, next) => {
   next();
 });
 
+
 // ------------------------ RUTAS API ------------------------
 
 // Ruta Home
 app.get("/", (req, res) => {
   res.send("API de Syncronizados");
 });
+
 
 // Ruta de login (POST)
 app.post("/login", async (req, res) => {
